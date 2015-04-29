@@ -1,109 +1,97 @@
 'use strict';
 
-const _ = require('lodash');
-const assert = require('assert');
-const expect = require('chai').expect;
+import _ from 'lodash';
+import assert from 'assert';
+import bluebird from 'bluebird';
 
 // Create reference
-function reference (path) {
+export function reference (path) {
   return {
-    _type: 'reference', path
+    _type: 'reference', path: path,
+    toString: () => '<Reference ' + path + '>'
   };
 }
 
+// Persist objects and resolve all references in a given state
+export function resolveAndPersist (state, persistFn) {
+  return bluebird.props(_.transform(state, function (resultState, items, tableName) {
+    var resultStateClone = _.clone(resultState);
+    resultStateClone[tableName] = _.isArray(items) ? [] : {};
+    _.forEach(items, function (item, key) {
+      resultStateClone[tableName][key] = persistFn(tableName, findAndResolveReferencesAsync(item, resultStateClone));
+    });
+    resultState[tableName] = _.isArray(items) ?
+      bluebird.all(_.clone(resultStateClone[tableName])) :
+      bluebird.props(_.clone(resultStateClone[tableName]));
+    return resultState;
+  }, {}));
+}
+
 // Resolve all references in a given state
-function resolve (state) {
-  return _.transform(state, function (resultState, value, key) {
-    resultState[key] = processItem(value, resultState);
+export function resolve (state) {
+  return _.transform(state, function (resultState, items, tableName) {
+    resultState[tableName] = _.isArray(items) ? [] : {};
+    _.forEach(items, function (item, key) {
+      resultState[tableName][key] = findAndResolveReferences(item, resultState);
+    });
     return resultState;
   }, {});
+}
 
-  function processItem (item, resultState) { // TODO: Find a better function name
-    assert(item && resultState, 'item and resultState should be provided');
-    return _.mapValues(item, function (value) { 
-      if (isReference(value)) {
-        return resolveReference(value, resultState);
-      } else if (_.isObject(value)) {
-        return processItem(value, resultState);
-      } else {
-        return value;
-      }
+function findAndResolveReferences (item, state) {
+  return _findAndResolveReferences(item, state, getValueAtPath, findAndResolveReferences);
+}
+
+function findAndResolveReferencesAsync (item, state) {
+  return bluebird.props(_findAndResolveReferences(item, state, getValueAtPathAsync, findAndResolveReferencesAsync));
+}
+
+function _findAndResolveReferences (item, state, getValueAtPathFn, recurFn) {
+  assert(item && state, 'item and state should be provided');
+  return _.mapValues(item, function (value) { 
+    if (_isReference(value)) {
+      return getValueAtPathFn(value.path, state);
+    } else if (_.isObject(value)) {
+      return recurFn(value, state);
+    } else {
+      return value;
+    }
+  });
+}
+
+export function getValueAtPath (path, object) {
+  return _getValueAtPath(path, object, getValueAtPath);
+}
+
+export function getValueAtPathAsync (path, objectOrPromise) {
+  // Wrap the object in a promise to be able to call `.then` on it weather its an object or a promise
+  return bluebird.resolve(objectOrPromise)
+    .then(function (object) {
+      console.log('path: %s, obj: %j -> %j', path, objectOrPromise, object);
+      return _getValueAtPath(path, object, getValueAtPathAsync);
     });
+}
+
+function _getValueAtPath (path, object, recurFn) {
+  if (_.isString(path)) {
+    path = path.split('.');
+  }
+  var first = _.first(path);
+  if (first in object) {
+    var value = object[first];
+    return _.isObject(value) ? recurFn(_.rest(path), value) : value;
+  } else {
+    console.log('Unable to get value at path %s in %j', path.join('.'), object);
+    throw new Error('Unable to get value at path ' + path.join('.'));
   }
 }
 
-function resolveReference (reference, state) {
-  console.log('Resolving reference with path: "%s" with state %j', reference.path, state);
-  return eval('state.' + reference.path); // TODO: Extract value at path without eval
-}
-
-function isReference(item) {
+function _isReference(item) {
   return _.isObject(item) && item._type === 'reference';
 }
 
-// Generators
-function generateUser (properties) {
-  return _.merge({
-    _type: 'user',
-    id: '?',
-    username: 'Swen'
-  }, properties);
+function _logAndReturn (text, value) {
+  console.log(text, value);
+  return value;
 }
 
-function generateClient (properties) {
-  return _.merge({
-    _type: 'client',
-    id: '?'
-  }, properties);
-}
-
-function generateAccessToken (properties) {
-  return _.merge({
-    _type: 'accessToken',
-    id: 'a1',
-    token: 'abc'
-  }, properties);
-}
-
-// Example state defenition
-describe('', function () {
-  it('returns the same object if there are no references to resolve', function () {
-    const state = {
-      user: generateUser(),
-      client: generateClient(),
-    };
-
-    expect(resolve(state)).to.deep.equal(state);
-  });
-
-  it('resolves references for values defined before the reference', function () {
-    const state = {
-      user: generateUser({ id: 'u1' }),
-      client: generateClient({ id: 'c1' }),
-      accessToken: generateAccessToken({
-        userId: reference('user.id'),
-        clientId: reference('client.id')
-      })
-    };
-
-    const resolvedState = resolve(state);
-    expect(resolvedState.accessToken.userId).to.equal('u1');
-    expect(resolvedState.accessToken.clientId).to.equal('c1');
-  });
-
-  it('resolves nested references for values defined before the reference', function () {
-    const state = {
-      user: generateUser({ id: 'u1' }),
-      task: {
-        _type: 'task',
-        task: 'Buy milk',
-        info: {
-          userId: reference('user.id')
-        }
-      }
-    };
-
-    const resolvedState = resolve(state);
-    expect(resolvedState.task.info.userId).to.equal('u1');
-  });
-});

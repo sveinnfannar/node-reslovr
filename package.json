@@ -9,13 +9,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bluebird": "^2.9.24",
     "lodash": "^3.5.0",
     "lodash-fp": "^0.5.1"
   },
   "devDependencies": {
     "babel": "^4.7.16",
+    "chai-as-promised": "^5.0.0",
     "chai": "^2.1.2",
     "expect": "^1.6.0",
-    "mocha": "^2.2.1"
+    "mocha": "^2.2.1",
+    "sinon": "^1.14.1"
   }
 }
