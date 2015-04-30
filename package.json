@@ -1,17 +1,16 @@
 {
-  "name": "node-test-data-generation",
+  "name": "node-resolvr",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --compilers js:babel/register test.js"
   },
-  "author": "",
+  "author": "Sveinn Fananr Kristjánsson <sveinn@oz.com>",
   "license": "ISC",
   "dependencies": {
     "bluebird": "^2.9.24",
-    "lodash": "^3.5.0",
-    "lodash-fp": "^0.5.1"
+    "lodash": "^3.5.0"
   },
   "devDependencies": {
     "babel": "^4.7.16",
