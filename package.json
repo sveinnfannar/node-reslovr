@@ -1,10 +1,10 @@
 {
-  "name": "node-resolvr",
+  "name": "resolvr",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha --compilers js:babel/register test.js"
+    "test": "mocha --compilers js:babel/register test.es6"
   },
   "author": "Sveinn Fananr Kristjánsson <sveinn@oz.com>",
   "license": "ISC",
