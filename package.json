@@ -1,12 +1,19 @@
 {
   "name": "resolvr",
   "version": "1.0.0",
-  "description": "",
+  "description": "Help you reference other values in your fixtures and resolve the references",
   "main": "index.js",
-  "scripts": {
-    "test": "mocha --compilers js:babel/register test.es6"
+  "author": {
+    "name": "Sveinn Fannar Kristjánsson",
+    "email": "sveinnfannar@gmail.com"
   },
-  "author": "Sveinn Fananr Kristjánsson <sveinn@oz.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ozinc/node-resolvr.git"
+  },
+  "scripts": {
+    "test": "mocha --compilers js:babel/register test.js"
+  },
   "license": "ISC",
   "dependencies": {
     "lodash": "^3.5.0",

@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import {
   reference,
   resolve,
-} from './index.es6';
+} from './index';
 
 describe('#resolve()', function () {
   it('returns the same state if there are no references to resolve', function () {
